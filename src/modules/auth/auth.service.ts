@@ -1,29 +1,25 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { compare, hash } from 'bcrypt';
-import { sign } from 'jsonwebtoken';
-import { Repository } from 'typeorm';
+import { decode, sign, verify } from 'jsonwebtoken';
 import appConfig from '../../config';
 import { User } from '../../database/entities/user.entity';
+import { UserService } from '../user/user.service';
 import { JwtPayload, TokenPair } from './auth.types';
 import { UserLoginRequestBodyDto, UserRegisterRequestBodyDto } from './dto';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   async register(dto: UserRegisterRequestBodyDto) {
-    const exists = await this.userRepository.findOne({ where: { email: dto.email } }); // <-- @Todo: Это можно будет в user.service вынести
+    const exists = await this.userService.findOneByEmail(dto.email);
     if (exists) {
       throw new ConflictException(`User already exists`);
     }
 
     const hashedPassword = await hash(dto.password, 10);
 
-    const user = await this.userRepository.save({
+    const user = await this.userService.create({
       name: dto.name,
       email: dto.email,
       password: hashedPassword,
@@ -33,13 +29,37 @@ export class AuthService {
   }
 
   async login(dto: UserLoginRequestBodyDto) {
-    const user = await this.userRepository.findOne({ where: { email: dto.email } }); // <-- @Todo: Это можно будет в user.service вынести
+    const user = await this.userService.findOneByEmail(dto.email);
 
     if (!user || !(await compare(dto.password, user.password))) {
       throw new UnauthorizedException();
     }
 
     return this.createTokenPair(user);
+  }
+
+  verify(token: string, type: 'access' | 'refresh'): boolean {
+    const secrets = {
+      access: appConfig.jwt.accessSecret,
+      refresh: appConfig.jwt.refreshSecret,
+    };
+
+    try {
+      verify(token, secrets[type]);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  decode(token: string): JwtPayload {
+    const decoded = decode(token, { json: true });
+
+    if (!decoded) {
+      throw new UnauthorizedException();
+    }
+
+    return decoded as JwtPayload;
   }
 
   private createTokenPair(user: User): TokenPair {

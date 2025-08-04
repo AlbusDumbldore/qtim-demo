@@ -1,3 +1,4 @@
+import { FastifyRequest } from 'fastify';
 import { User } from '../../database/entities/user.entity';
 
 export type JwtPayload = {
@@ -8,4 +9,8 @@ export type JwtPayload = {
 export type TokenPair = {
   accessToken: string;
   refreshToken: string;
+};
+
+export type AuthorizedFastifyRequest = FastifyRequest & {
+  user: User;
 };
