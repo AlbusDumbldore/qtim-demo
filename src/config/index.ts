@@ -18,6 +18,10 @@ const rawConfig: EnvStructure<AppConfigDto> = {
     password: process.env.POSTGRES_PASSWORD,
     database: process.env.POSTGRES_DB,
   },
+  jwt: {
+    accessSecret: process.env.JWT_ACCESS_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+  },
 };
 
 const appConfig = plainToInstance(AppConfigDto, rawConfig);
