@@ -19,6 +19,11 @@ npm run migrate:generate --name=<name>
 npm run migrate
 ```
 
+Откат последней миграции
+```bash
+npm run migrate:revert
+```
+
 # **Тестовое задание для Middle NestJS разработчика**
 
 Разработайте простое REST API с использованием NestJS, которое включает в себя аутентификацию, CRUD операции и кэширование данных. Проект должен использовать PostgreSQL для хранения данных и Redis для кэширования.
