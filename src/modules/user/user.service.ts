@@ -19,7 +19,7 @@ export class UserService {
   }
 
   async create(user: DeepPartial<User>): Promise<User> {
-    return this.userRepository.create({
+    return this.userRepository.save({
       name: user.name,
       email: user.email,
       password: user.password,
