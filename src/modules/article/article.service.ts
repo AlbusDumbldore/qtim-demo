@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
@@ -12,6 +12,8 @@ import { CreateArticleRequestBodyDto, FindAllArticleRequestQueryDto, UpdateArtic
 
 @Injectable()
 export class ArticleService {
+  private readonly logger = new Logger(ArticleService.name);
+
   constructor(
     @InjectRepository(Article)
     private articleRepository: Repository<Article>,
@@ -51,11 +53,15 @@ export class ArticleService {
   }
 
   async create(userId: User['id'], dto: CreateArticleRequestBodyDto): Promise<Article> {
-    return this.articleRepository.save({
+    const article = await this.articleRepository.save({
       title: dto.title,
       description: dto.description,
       user: { id: userId },
     });
+
+    this.logger.log(`New article created (id=${article.id}, title="${article.title}")`);
+
+    return article;
   }
 
   async update(userId: User['id'], articleId: Article['id'], dto: UpdateArticleRequestBodyDto): Promise<Article> {
@@ -73,6 +79,8 @@ export class ArticleService {
       },
     );
 
+    this.logger.log(`Article updated (id=${article.id})`);
+
     await Promise.all([
       this.cacheService.delete(cacheArticleById(articleId)),
       this.cacheService.deleteForPattern(cacheArticlesList('*')),
@@ -89,6 +97,8 @@ export class ArticleService {
     }
 
     const { affected } = await this.articleRepository.delete({ id: articleId });
+
+    this.logger.log(`Article deleted (id=${article.id})`);
 
     await Promise.all([
       this.cacheService.delete(cacheArticleById(articleId)),

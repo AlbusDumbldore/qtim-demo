@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { compare, hash } from 'bcrypt';
 import { decode, sign, verify } from 'jsonwebtoken';
 import { CacheTime } from '../../cache/cache.constants';
@@ -12,6 +12,8 @@ import { UserLoginRequestBodyDto, UserRegisterRequestBodyDto } from './dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly cacheService: CacheService,
@@ -30,6 +32,8 @@ export class AuthService {
       email: dto.email,
       password: hashedPassword,
     });
+
+    this.logger.log(`New user registered (id=${user.id}, email="${user.email}")`);
 
     return user;
   }
