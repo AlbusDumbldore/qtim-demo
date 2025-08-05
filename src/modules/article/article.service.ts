@@ -2,6 +2,9 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
+import { CacheTime } from '../../cache/cache.constants';
+import { cacheArticleById, cacheArticlesList, cacheArticlesListQuery } from '../../cache/cache.keys';
+import { CacheService } from '../../cache/cache.service';
 import { Article } from '../../database/entities/article.entity';
 import { User } from '../../database/entities/user.entity';
 import { SuccessResponseBodyDto } from '../../shared';
@@ -12,9 +15,16 @@ export class ArticleService {
   constructor(
     @InjectRepository(Article)
     private articleRepository: Repository<Article>,
+
+    private readonly cacheService: CacheService,
   ) {}
 
   async findAll(dto: FindAllArticleRequestQueryDto) {
+    const cached = await this.cacheService.get(cacheArticlesListQuery(dto));
+    if (cached) {
+      return cached;
+    }
+
     const { offset, limit, userId, sortDirection, sortBy, search } = dto;
 
     const options: FindManyOptions<Article> = {
@@ -31,12 +41,13 @@ export class ArticleService {
 
     const [items, total] = await this.articleRepository.findAndCount(options);
 
-    return {
-      total,
-      limit,
-      offset,
-      items,
-    };
+    const response = { total, limit, offset, items };
+
+    await this.cacheService.set(cacheArticlesListQuery(dto), response, {
+      expiration: { type: 'EX', value: CacheTime.min5 },
+    });
+
+    return response;
   }
 
   async create(userId: User['id'], dto: CreateArticleRequestBodyDto): Promise<Article> {
@@ -62,6 +73,11 @@ export class ArticleService {
       },
     );
 
+    await Promise.all([
+      this.cacheService.delete(cacheArticleById(articleId)),
+      this.cacheService.deleteForPattern(cacheArticlesList('*')),
+    ]);
+
     return this.findById(articleId);
   }
 
@@ -74,15 +90,29 @@ export class ArticleService {
 
     const { affected } = await this.articleRepository.delete({ id: articleId });
 
+    await Promise.all([
+      this.cacheService.delete(cacheArticleById(articleId)),
+      this.cacheService.deleteForPattern(cacheArticlesList('*')),
+    ]);
+
     return { success: Boolean(affected) };
   }
 
   public async findById(id: Article['id']): Promise<Article> {
+    const cached = await this.cacheService.get<Article>(cacheArticleById(id));
+    if (cached) {
+      return cached;
+    }
+
     const article = await this.articleRepository.findOne({ where: { id }, relations: ['user'] });
 
     if (!article) {
       throw new NotFoundException('Article does not exist');
     }
+
+    await this.cacheService.set(cacheArticleById(id), article, {
+      expiration: { type: 'EX', value: CacheTime.min5 },
+    });
 
     return article;
   }

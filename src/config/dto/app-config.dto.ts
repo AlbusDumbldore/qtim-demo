@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, Max, Min } from 'class-validator';
+import { IsInt, IsString, Max, Min } from 'class-validator';
 import { TransformNestedConfig } from '../../decorators';
 import { JwtConfigDto } from './jwt-config.dto';
 import { PostgresConfigDto } from './postgres-config.dto';
@@ -10,6 +10,9 @@ export class AppConfigDto {
   @Max(65535)
   @Type(() => Number)
   readonly port: number;
+
+  @IsString()
+  readonly redisUrl: string;
 
   @TransformNestedConfig(PostgresConfigDto)
   readonly postgres: PostgresConfigDto;

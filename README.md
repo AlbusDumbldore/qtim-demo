@@ -24,6 +24,12 @@ npm run migrate
 npm run migrate:revert
 ```
 
+# Swagger
+После запуска сервера Swagger будет доступен по пути `http://address:port/docs`, например:
+```
+http://localhost:3000/docs
+```
+
 # **Тестовое задание для Middle NestJS разработчика**
 
 Разработайте простое REST API с использованием NestJS, которое включает в себя аутентификацию, CRUD операции и кэширование данных. Проект должен использовать PostgreSQL для хранения данных и Redis для кэширования.
