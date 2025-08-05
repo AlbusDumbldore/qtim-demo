@@ -1,11 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { User } from '../../database/entities/user.entity';
 import { AuthorizedUser } from '../../decorators';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { IdNumberDto, SuccessResponseBodyDto } from '../../shared';
 import { ArticleService } from './article.service';
-import { CreateArticleRequestBodyDto, UpdateArticleRequestBodyDto } from './dto';
+import { CreateArticleRequestBodyDto, FindAllArticleRequestQueryDto, UpdateArticleRequestBodyDto } from './dto';
 
 @ApiBearerAuth()
 @Controller('article')
@@ -14,11 +14,15 @@ export class ArticleController {
 
   @ApiOperation({ summary: 'Получить список статей' })
   @Get('/')
-  async list() {}
+  async list(@Query() dto: FindAllArticleRequestQueryDto) {
+    return this.articleService.findAll(dto);
+  }
 
   @ApiOperation({ summary: 'Получить статью по id' })
   @Get('/:id')
-  async index() {}
+  async index(@Param() { id }: IdNumberDto) {
+    return this.articleService.findById(id);
+  }
 
   @UseGuards(JwtGuard)
   @ApiOperation({ summary: 'Создать новую статью' })
