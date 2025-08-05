@@ -22,5 +22,5 @@ export class User {
   public password: string;
 
   @OneToMany(() => Article, (article) => article.user)
-  articles: Article[];
+  public articles: Article[];
 }
