@@ -1,6 +1,9 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { compare, hash } from 'bcrypt';
 import { decode, sign, verify } from 'jsonwebtoken';
+import { CacheTime } from '../../cache/cache.constants';
+import { cacheRefreshToken } from '../../cache/cache.keys';
+import { CacheService } from '../../cache/cache.service';
 import appConfig from '../../config';
 import { User } from '../../database/entities/user.entity';
 import { UserService } from '../user/user.service';
@@ -9,7 +12,10 @@ import { UserLoginRequestBodyDto, UserRegisterRequestBodyDto } from './dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async register(dto: UserRegisterRequestBodyDto) {
     const exists = await this.userService.findOneByEmail(dto.email);
@@ -28,6 +34,26 @@ export class AuthService {
     return user;
   }
 
+  async refresh(refreshToken: string) {
+    const valid = this.verify(refreshToken, 'refresh');
+    if (!valid) {
+      throw new UnauthorizedException();
+    }
+
+    const token = await this.cacheService.get<JwtPayload>(cacheRefreshToken(refreshToken));
+    if (!token) {
+      throw new UnauthorizedException();
+    }
+    await this.cacheService.delete(cacheRefreshToken(refreshToken));
+
+    const user = await this.userService.findOneById(token.id);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    return this.upsertTokenPair(user);
+  }
+
   async login(dto: UserLoginRequestBodyDto) {
     const user = await this.userService.findOneByEmail(dto.email);
 
@@ -35,7 +61,7 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    return this.createTokenPair(user);
+    return this.upsertTokenPair(user);
   }
 
   verify(token: string, type: 'access' | 'refresh'): boolean {
@@ -62,11 +88,17 @@ export class AuthService {
     return decoded as JwtPayload;
   }
 
-  private createTokenPair(user: User): TokenPair {
+  private async upsertTokenPair(user: User): Promise<TokenPair> {
     const payload: JwtPayload = { id: user.id, email: user.email };
 
     const accessToken = sign(payload, appConfig.jwt.accessSecret, { expiresIn: '1h' });
     const refreshToken = sign(payload, appConfig.jwt.refreshSecret, { expiresIn: '1w' });
+
+    await this.cacheService.set(
+      cacheRefreshToken(refreshToken),
+      { id: user.id },
+      { expiration: { type: 'EX', value: CacheTime.day8 } },
+    );
 
     return { accessToken, refreshToken };
   }
