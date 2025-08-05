@@ -53,15 +53,15 @@ export class ArticleService {
   }
 
   async create(userId: User['id'], dto: CreateArticleRequestBodyDto): Promise<Article> {
-    const article = await this.articleRepository.save({
+    const created = await this.articleRepository.save({
       title: dto.title,
       description: dto.description,
       user: { id: userId },
     });
 
-    this.logger.log(`New article created (id=${article.id}, title="${article.title}")`);
+    this.logger.log(`New article created (id=${created.id}, title="${created.title}")`);
 
-    return article;
+    return this.findById(created.id);
   }
 
   async update(userId: User['id'], articleId: Article['id'], dto: UpdateArticleRequestBodyDto): Promise<Article> {

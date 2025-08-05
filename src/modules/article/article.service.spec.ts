@@ -153,6 +153,7 @@ describe('ArticleService', () => {
     it('should create a new article', async () => {
       const newArticle = { ...mockArticle, ...createDto };
       mockRepository.save.mockResolvedValue(newArticle);
+      mockRepository.findOne.mockResolvedValue(newArticle);
 
       const result = await service.create(mockUser.id, createDto);
 

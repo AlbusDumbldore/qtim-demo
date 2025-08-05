@@ -14,7 +14,8 @@ export class CacheModule implements OnApplicationShutdown {
     private readonly redis: RedisClientType,
   ) {}
 
-  async onApplicationShutdown() {
-    await this.redis.close();
+  async onApplicationShutdown(): Promise<void> {
+    // Deprecated, но альтернативы .destroy() или .close() кидают is not a function :)
+    await this.redis.disconnect();
   }
 }
