@@ -10,6 +10,8 @@ async function bootstrap() {
   bootstrapPipes(app);
   bootstrapSwagger(app);
 
+  app.enableShutdownHooks();
+
   await app.listen(appConfig.port);
 }
 

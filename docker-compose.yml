@@ -9,3 +9,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespassword
       POSTGRES_DB: qtim-backend
+
+  redis:
+    container_name: qtim-demo-redis
+    image: redis:7-alpine
+    command: redis-server --requirepass redispassword
+    restart: unless-stopped
+    ports:
+      - "6329:6379"
