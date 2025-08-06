@@ -6,7 +6,7 @@ import { PostgresConfigDto } from './postgres-config.dto';
 
 export class AppConfigDto {
   @IsInt()
-  @Min(1024)
+  @Min(80)
   @Max(65535)
   @Type(() => Number)
   readonly port: number;
